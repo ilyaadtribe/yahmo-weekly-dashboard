@@ -86,14 +86,19 @@ def agg_platform(weeks, side):
     purch = sum((w[side] or {}).get("purchases") or 0 for w in weeks)
     imp   = sum((w[side] or {}).get("impressions") or 0 for w in weeks)
     clk   = sum((w[side] or {}).get("clicks") or 0 for w in weeks)
+    v3    = sum((w[side] or {}).get("video_3s") or 0 for w in weeks)
+    thru  = sum((w[side] or {}).get("thruplays") or 0 for w in weeks)
     return {
         "spend": spend, "revenue": rev, "purchases": purch,
         "impressions": imp, "clicks": clk,
-        "roas": (rev / spend) if spend else 0,
-        "cpa":  (spend / purch) if purch else 0,
-        "cpm":  (spend / imp * 1000) if imp else 0,
-        "ctr":  (clk / imp * 100) if imp else 0,
-        "cpc":  (spend / clk) if clk else 0,
+        "video_3s": v3, "thruplays": thru,
+        "roas":      (rev / spend) if spend else 0,
+        "cpa":       (spend / purch) if purch else 0,
+        "cpm":       (spend / imp * 1000) if imp else 0,
+        "ctr":       (clk / imp * 100) if imp else 0,
+        "cpc":       (spend / clk) if clk else 0,
+        "hook_rate": (v3 / imp) if imp else 0,
+        "hold_rate": (thru / v3) if v3 else 0,
     }
 meta_ttm = agg_platform(TTM, "meta")
 google_ttm = agg_platform(TTM, "google")
@@ -122,7 +127,7 @@ meta_rows = []
 for w in WEEKS:
     m = w["meta"] or {}
     if not m:
-        meta_rows.append(f"""<tr><td class="acct">{short_date(w['week_start'])}</td><td colspan="12" class="neu">no data</td></tr>""")
+        meta_rows.append(f"""<tr><td class="acct">{short_date(w['week_start'])}</td><td colspan="14" class="neu">no data</td></tr>""")
         continue
     meta_rows.append(f"""<tr>
       <td class="acct">{short_date(w['week_start'])}</td>
@@ -138,6 +143,8 @@ for w in WEEKS:
       <td>{num(m.get('ctr'))}%</td>
       <td>{usd(m.get('cpc'))}</td>
       <td>{num(m.get('frequency'))}</td>
+      <td>{pct(m.get('hook_rate'))}</td>
+      <td>{pct(m.get('hold_rate'))}</td>
     </tr>""")
 
 # --- Google rows ---
@@ -452,9 +459,9 @@ HTML = f"""<!DOCTYPE html>
         <div class="meta">CPA {usd(latest_meta.get('cpa'))}</div>
       </div>
       <div class="kpi">
-        <div class="label">Meta · ROAS Hits · Last 4 Weeks</div>
-        <div class="value">{meta_hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
-        <div class="meta">Weeks with ROAS ≥ {TH['roas_meta_min']:.0f}</div>
+        <div class="label">Meta · Latest Week Video</div>
+        <div class="value" style="font-size:22px">{pct(latest_meta.get('hook_rate'))} <span style="color:var(--muted-2);font-size:14px;font-weight:500">hook</span></div>
+        <div class="meta">{pct(latest_meta.get('hold_rate'))} hold · ThruPlays {intf(latest_meta.get('thruplays'))}</div>
       </div>
     </section>
 
@@ -480,6 +487,8 @@ HTML = f"""<!DOCTYPE html>
               <th>CTR%</th>
               <th>CPC</th>
               <th>Frequency</th>
+              <th>Hook Rate</th>
+              <th>Hold Rate</th>
             </tr>
           </thead>
           <tbody>
@@ -500,6 +509,8 @@ HTML = f"""<!DOCTYPE html>
               <td>{num(meta_ttm['ctr'])}%</td>
               <td>{usd(meta_ttm['cpc'])}</td>
               <td>—</td>
+              <td>{pct(meta_ttm['hook_rate'])}</td>
+              <td>{pct(meta_ttm['hold_rate'])}</td>
             </tr>
           </tfoot>
         </table>

@@ -22,7 +22,7 @@ This file is read by the scheduled Claude agent every Monday. The agent has acce
    - `level`: `account`
    - `time_increment`: `7`
    - `time_range`: `{"since": "<today minus 364 days>", "until": "<yesterday>"}`
-   - `fields`: `["spend", "impressions", "reach", "clicks", "ctr", "cpm", "cpc", "frequency", "actions", "action_values", "purchase_roas"]`
+   - `fields`: `["spend", "impressions", "reach", "clicks", "ctr", "cpm", "cpc", "frequency", "actions", "action_values", "purchase_roas", "video_thruplay_watched_actions"]`
    - **Important**: Meta paginates at 25 weeks per page. The agent MUST follow `paging.next` via `facebook_fetch_pagination_url` until exhausted.
    - For each weekly row, extract:
      - `spend`, `impressions`, `reach`, `clicks`, `ctr`, `cpm`, `cpc`, `frequency`
@@ -30,6 +30,10 @@ This file is read by the scheduled Claude agent every Monday. The agent has acce
      - `revenue`  = the `omni_purchase` entry in `action_values` (fallback: `purchase`)
      - `roas`     = the `omni_purchase` entry in `purchase_roas`
      - Derive `cpa = spend / purchases` (or 0 if purchases==0)
+     - `video_3s`   = the `video_view` entry in `actions` (Meta's 3-second video play count)
+     - `thruplays`  = the `video_view` entry in `video_thruplay_watched_actions` (≥15s or full video, whichever shorter)
+     - Derive `hook_rate = video_3s / impressions` (decimal 0..1; render as %)
+     - Derive `hold_rate = thruplays / video_3s` (decimal 0..1; render as %)
 
 3. **Pull Google Ads weekly metrics** via `google_ads_run_gaql`:
    - `customer_id`: `"7543821390"`, `manager_id`: `"4749583550"`
@@ -70,7 +74,7 @@ This file is read by the scheduled Claude agent every Monday. The agent has acce
      "weeks": [
        {
          "week_start": "YYYY-MM-DD",
-         "meta":   { "week_start", "week_end", "spend", "impressions", "reach", "clicks", "ctr", "cpm", "cpc", "frequency", "purchases", "revenue", "roas", "cpa" },
+         "meta":   { "week_start", "week_end", "spend", "impressions", "reach", "clicks", "ctr", "cpm", "cpc", "frequency", "purchases", "revenue", "roas", "cpa", "video_3s", "thruplays", "hook_rate", "hold_rate" },
          "google": { "week_start", "spend", "impressions", "clicks", "purchases", "revenue", "cpa", "roas", "cpm", "ctr", "cpc", "abs_top_pct", "top_pct", "budget_lost_pct", "rank_lost_pct" }
        }
      ]
