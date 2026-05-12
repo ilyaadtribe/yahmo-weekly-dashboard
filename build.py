@@ -1,0 +1,411 @@
+#!/usr/bin/env python3
+"""Render data.json into index.html for the Yahmo weekly dashboard."""
+import json
+import datetime
+import html
+from pathlib import Path
+
+ROOT = Path(__file__).parent
+DATA = json.loads((ROOT / "data.json").read_text())
+WEEKS = DATA["weeks"]
+TH = DATA["thresholds"]
+ACCT = DATA["account"]
+DATE_RANGE = DATA["date_range"]
+
+
+def usd(v):
+    if v is None or v == 0:
+        return "$0.00"
+    return f"${v:,.2f}"
+
+
+def num(v, dec=2):
+    if v is None:
+        return "—"
+    return f"{v:,.{dec}f}"
+
+
+def intf(v):
+    if v is None:
+        return "—"
+    return f"{int(v):,}"
+
+
+def pct(v, dec=2):
+    if v is None:
+        return "—"
+    return f"{v*100:.{dec}f}%"
+
+
+def cls_thresh(value, minimum):
+    if value is None:
+        return "neu"
+    return "pos" if value >= minimum else "neg"
+
+
+def short_date(d):
+    return datetime.date.fromisoformat(d).strftime("%b %d, %Y")
+
+
+# --- Header KPIs from the latest week ---
+latest = WEEKS[0]
+latest_meta = latest["meta"] or {}
+latest_google = latest["google"] or {}
+
+latest_spend = (latest_meta.get("spend") or 0) + (latest_google.get("spend") or 0)
+latest_revenue = (latest_meta.get("revenue") or 0) + (latest_google.get("revenue") or 0)
+latest_purchases = (latest_meta.get("purchases") or 0) + (latest_google.get("purchases") or 0)
+blended_roas = (latest_revenue / latest_spend) if latest_spend else 0
+meta_roas = latest_meta.get("roas") or 0
+google_roas = latest_google.get("roas") or 0
+
+# Threshold compliance: last 4 full weeks (skipping current partial week if needed)
+compliance_weeks = WEEKS[:4]
+def hits_kpi(w):
+    m = w["meta"] or {}
+    g = w["google"] or {}
+    total_p = (m.get("purchases") or 0) + (g.get("purchases") or 0)
+    return (
+        total_p >= TH["purchases_min"]
+        and (m.get("roas") or 0) >= TH["roas_meta_min"]
+        and (g.get("roas") or 0) >= TH["roas_google_min"]
+    )
+hits = sum(1 for w in compliance_weeks if hits_kpi(w))
+
+
+# --- Trend bars (last 12 weeks, reversed to chronological) ---
+trend = list(reversed(WEEKS[:12]))
+
+
+def bar_row(label, value, max_value):
+    pct_w = (value / max_value * 100) if max_value else 0
+    return f"""<div class="bar-row">
+        <span class="name">{html.escape(label)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:{pct_w:.1f}%"></div></div>
+        <span class="amount">{usd(value)}</span>
+      </div>"""
+
+
+# --- KPI flag rows ---
+kpi_rows = []
+for w in WEEKS:
+    m = w["meta"] or {}
+    g = w["google"] or {}
+    total_p = (m.get("purchases") or 0) + (g.get("purchases") or 0)
+    m_roas = m.get("roas") or 0
+    g_roas = g.get("roas") or 0
+    kpi_rows.append(f"""<tr>
+      <td class="acct">{short_date(w['week_start'])}</td>
+      <td class="{cls_thresh(total_p, TH['purchases_min'])}">{intf(total_p)}</td>
+      <td class="{cls_thresh(m_roas, TH['roas_meta_min'])}">{num(m_roas)}</td>
+      <td class="{cls_thresh(g_roas, TH['roas_google_min'])}">{num(g_roas)}</td>
+    </tr>""")
+
+# --- Meta rows ---
+meta_rows = []
+for w in WEEKS:
+    m = w["meta"] or {}
+    if not m:
+        meta_rows.append(f"""<tr><td class="acct">{short_date(w['week_start'])}</td><td colspan="12" class="neu">no data</td></tr>""")
+        continue
+    meta_rows.append(f"""<tr>
+      <td class="acct">{short_date(w['week_start'])}</td>
+      <td>{usd(m.get('spend'))}</td>
+      <td>{intf(m.get('purchases'))}</td>
+      <td>{usd(m.get('revenue'))}</td>
+      <td>{usd(m.get('cpa'))}</td>
+      <td class="{cls_thresh(m.get('roas'), TH['roas_meta_min'])}">{num(m.get('roas'))}</td>
+      <td>{intf(m.get('reach'))}</td>
+      <td>{intf(m.get('impressions'))}</td>
+      <td>{intf(m.get('clicks'))}</td>
+      <td>{num(m.get('cpm'))}</td>
+      <td>{num(m.get('ctr'))}%</td>
+      <td>{usd(m.get('cpc'))}</td>
+      <td>{num(m.get('frequency'))}</td>
+    </tr>""")
+
+# --- Google rows ---
+google_rows = []
+for w in WEEKS:
+    g = w["google"] or {}
+    if not g:
+        google_rows.append(f"""<tr><td class="acct">{short_date(w['week_start'])}</td><td colspan="14" class="neu">no data</td></tr>""")
+        continue
+    google_rows.append(f"""<tr>
+      <td class="acct">{short_date(w['week_start'])}</td>
+      <td>{usd(g.get('spend'))}</td>
+      <td>{num(g.get('purchases'), 1)}</td>
+      <td>{usd(g.get('revenue'))}</td>
+      <td>{usd(g.get('cpa'))}</td>
+      <td class="{cls_thresh(g.get('roas'), TH['roas_google_min'])}">{num(g.get('roas'))}</td>
+      <td>{intf(g.get('impressions'))}</td>
+      <td>{intf(g.get('clicks'))}</td>
+      <td>{num(g.get('cpm'))}</td>
+      <td>{num(g.get('ctr'))}%</td>
+      <td>{usd(g.get('cpc'))}</td>
+      <td>{pct(g.get('abs_top_pct'))}</td>
+      <td>{pct(g.get('top_pct'))}</td>
+      <td>{pct(g.get('budget_lost_pct'))}</td>
+      <td>{pct(g.get('rank_lost_pct'))}</td>
+    </tr>""")
+
+
+HTML = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{ACCT['brand']} — Meta & Google Ads Weekly</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {{
+    --black: #010101;
+    --purple: #6c2fce;
+    --purple-2: #8b56e3;
+    --lime: #c7f300;
+    --white: #ffffff;
+    --bg: var(--black);
+    --panel: #0a0a0c;
+    --panel-2: #111114;
+    --border: rgba(255,255,255,0.08);
+    --border-2: rgba(255,255,255,0.14);
+    --text: var(--white);
+    --muted: rgba(255,255,255,0.55);
+    --muted-2: rgba(255,255,255,0.38);
+    --accent: var(--purple);
+    --accent-2: var(--purple-2);
+    --good: var(--lime);
+    --bad: #ff5b5b;
+  }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(108,47,206,0.18) 0%, transparent 60%),
+      radial-gradient(700px 400px at 0% 110%, rgba(199,243,0,0.05) 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 36px 24px 64px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }}
+  .wrap {{ max-width: 1400px; margin: 0 auto; }}
+  header {{ display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }}
+  h1 {{ font-size: 24px; margin: 0; letter-spacing: -0.02em; font-weight: 600; }}
+  .sub {{ color: var(--muted); font-size: 13px; }}
+  .badge {{
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    background: rgba(108,47,206,0.18); color: var(--lime);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    border: 1px solid rgba(108,47,206,0.35);
+  }}
+  .kpis {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }}
+  @media (max-width: 800px) {{ .kpis {{ grid-template-columns: repeat(2, 1fr); }} }}
+  .kpi {{
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+    position: relative;
+    overflow: hidden;
+  }}
+  .kpi::before {{
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(300px 120px at 110% 0%, rgba(108,47,206,0.10), transparent 70%);
+    pointer-events: none;
+  }}
+  .kpi .label {{ color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.10em; margin-bottom: 8px; font-weight: 500; }}
+  .kpi .value {{ font-size: 28px; font-weight: 600; letter-spacing: -0.025em; }}
+  .kpi .meta {{ color: var(--muted); font-size: 12px; margin-top: 4px; }}
+  .kpi.accent .value {{ color: var(--lime); }}
+  .panel {{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }}
+  .panel + .panel {{ margin-top: 20px; }}
+  .panel-h {{
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }}
+  .panel-h h2 {{ margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }}
+  .scroll {{ overflow-x: auto; }}
+  table {{ width: 100%; border-collapse: collapse; min-width: 1280px; }}
+  th, td {{ padding: 10px 12px; text-align: right; font-variant-numeric: tabular-nums; font-size: 12.5px; white-space: nowrap; }}
+  th:first-child, td:first-child {{ text-align: left; position: sticky; left: 0; background: var(--panel); z-index: 1; }}
+  thead th:first-child {{ background: var(--panel-2); }}
+  thead th {{
+    color: var(--muted); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+  }}
+  tbody tr {{ border-bottom: 1px solid var(--border); }}
+  tbody tr:last-child {{ border-bottom: none; }}
+  tbody tr:hover td {{ background: rgba(108,47,206,0.06); }}
+  tbody tr:hover td:first-child {{ background: rgba(108,47,206,0.06); }}
+  .acct {{ font-weight: 500; }}
+  .pos {{ color: var(--lime); font-weight: 500; }}
+  .neg {{ color: var(--bad); font-weight: 500; }}
+  .neu {{ color: var(--muted); }}
+  .bar-wrap {{ display: grid; gap: 10px; padding: 18px 20px 22px; }}
+  .bar-row {{ display: grid; grid-template-columns: 140px 1fr 140px; align-items: center; gap: 14px; font-size: 13px; }}
+  .bar-row .name {{ color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }}
+  .bar-row .amount {{ text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }}
+  .bar-track {{ height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; position: relative; border: 1px solid var(--border); }}
+  .bar-fill {{ height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--purple) 0%, var(--purple-2) 100%); }}
+  footer {{ color: var(--muted-2); font-size: 11px; margin-top: 24px; text-align: right; letter-spacing: 0.02em; }}
+  .meta-block-title {{ color: var(--lime); font-size: 9px; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="badge">{ACCT['brand']} · Weekly Performance</div>
+      <h1 style="margin-top:10px">{ACCT['brand']} — Meta &amp; Google Ads Weekly</h1>
+      <div class="sub">{short_date(DATE_RANGE['from'])} – {short_date(DATE_RANGE['to'])} · {DATA['weeks_count']} weeks · Meta {ACCT['meta_account_id']} · Google {ACCT['google_customer_id']}</div>
+    </div>
+    <div class="sub">Source: GoMarble · KPIs: Purchases &gt; {TH['purchases_min']} · ROAS &gt; {TH['roas_meta_min']:.0f}</div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi">
+      <div class="label">Latest Week Spend</div>
+      <div class="value">{usd(latest_spend)}</div>
+      <div class="meta">Meta {usd(latest_meta.get('spend'))} · Google {usd(latest_google.get('spend'))}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Latest Week Blended ROAS</div>
+      <div class="value" style="color:{'var(--lime)' if blended_roas >= TH['roas_meta_min'] else 'var(--bad)'}">{num(blended_roas)}</div>
+      <div class="meta">Meta {num(meta_roas)} · Google {num(google_roas)}</div>
+    </div>
+    <div class="kpi accent">
+      <div class="label">Latest Week Purchases</div>
+      <div class="value">{intf(latest_purchases)}</div>
+      <div class="meta">Meta {intf(latest_meta.get('purchases'))} · Google {num(latest_google.get('purchases'), 1)} · Target ≥ {TH['purchases_min']}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">KPI Compliance · Last 4 Weeks</div>
+      <div class="value">{hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+      <div class="meta">Weeks meeting all 3 thresholds</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-h">
+      <h2>Weekly Spend Trend — Last 12 Weeks</h2>
+      <span class="sub">Meta + Google combined</span>
+    </div>
+    <div class="bar-wrap">
+"""
+
+# Trend bars
+max_spend = max(((w["meta"] or {}).get("spend") or 0) + ((w["google"] or {}).get("spend") or 0) for w in trend) or 1
+for w in trend:
+    spend_total = ((w["meta"] or {}).get("spend") or 0) + ((w["google"] or {}).get("spend") or 0)
+    HTML += bar_row(short_date(w["week_start"]), spend_total, max_spend) + "\n"
+
+HTML += f"""    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-h">
+      <h2>Weekly KPIs</h2>
+      <span class="sub">Green = threshold met</span>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>Purchases (≥ {TH['purchases_min']})</th>
+            <th>ROAS Meta (≥ {TH['roas_meta_min']:.0f})</th>
+            <th>ROAS Google (≥ {TH['roas_google_min']:.0f})</th>
+          </tr>
+        </thead>
+        <tbody>
+          {''.join(kpi_rows)}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-h">
+      <h2>Meta Ads — Weekly Detail</h2>
+      <span class="sub">{ACCT['meta_account_name']} · {ACCT['meta_account_id']}</span>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>Amount Spent</th>
+            <th>Purchases</th>
+            <th>Revenue</th>
+            <th>CPA</th>
+            <th>ROAS</th>
+            <th>Reach</th>
+            <th>Impressions</th>
+            <th>Clicks</th>
+            <th>CPM</th>
+            <th>CTR%</th>
+            <th>CPC</th>
+            <th>Frequency</th>
+          </tr>
+        </thead>
+        <tbody>
+          {''.join(meta_rows)}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-h">
+      <h2>Google Ads — Weekly Detail</h2>
+      <span class="sub">{ACCT['google_account_name']} · {ACCT['google_customer_id']}</span>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>Amount Spent</th>
+            <th>Purchase</th>
+            <th>Revenue</th>
+            <th>CPA</th>
+            <th>ROAS</th>
+            <th>Impressions</th>
+            <th>Clicks</th>
+            <th>CPM</th>
+            <th>CTR%</th>
+            <th>CPC</th>
+            <th>Impr. (Abs. top) %</th>
+            <th>Impr. (Top) %</th>
+            <th>Search lost IS (budget)</th>
+            <th>Search lost IS (rank)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {''.join(google_rows)}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>Generated {DATA['generated_at']} · Source: GoMarble (Meta Graph API + Google Ads API)</footer>
+</div>
+</body>
+</html>
+"""
+
+(ROOT / "index.html").write_text(HTML)
+print(f"Wrote {ROOT / 'index.html'} ({len(HTML):,} chars)")
