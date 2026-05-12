@@ -56,10 +56,16 @@ latest_spend = (latest_meta.get("spend") or 0) + (latest_google.get("spend") or 
 latest_revenue = (latest_meta.get("revenue") or 0) + (latest_google.get("revenue") or 0)
 latest_purchases = (latest_meta.get("purchases") or 0) + (latest_google.get("purchases") or 0)
 blended_roas = (latest_revenue / latest_spend) if latest_spend else 0
+meta_spend = latest_meta.get("spend") or 0
+google_spend = latest_google.get("spend") or 0
 meta_roas = latest_meta.get("roas") or 0
 google_roas = latest_google.get("roas") or 0
+meta_purchases = latest_meta.get("purchases") or 0
+google_purchases = latest_google.get("purchases") or 0
+meta_revenue = latest_meta.get("revenue") or 0
+google_revenue = latest_google.get("revenue") or 0
 
-# Threshold compliance: last 4 full weeks (skipping current partial week if needed)
+# Threshold compliance: last 4 weeks
 compliance_weeks = WEEKS[:4]
 def hits_kpi(w):
     m = w["meta"] or {}
@@ -71,22 +77,10 @@ def hits_kpi(w):
         and (g.get("roas") or 0) >= TH["roas_google_min"]
     )
 hits = sum(1 for w in compliance_weeks if hits_kpi(w))
+meta_hits   = sum(1 for w in compliance_weeks if ((w["meta"] or {}).get("roas") or 0) >= TH["roas_meta_min"])
+google_hits = sum(1 for w in compliance_weeks if ((w["google"] or {}).get("roas") or 0) >= TH["roas_google_min"])
 
-
-# --- Trend bars (last 12 weeks, reversed to chronological) ---
-trend = list(reversed(WEEKS[:12]))
-
-
-def bar_row(label, value, max_value):
-    pct_w = (value / max_value * 100) if max_value else 0
-    return f"""<div class="bar-row">
-        <span class="name">{html.escape(label)}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:{pct_w:.1f}%"></div></div>
-        <span class="amount">{usd(value)}</span>
-      </div>"""
-
-
-# --- KPI flag rows ---
+# --- KPI flag rows (Overall tab) ---
 kpi_rows = []
 for w in WEEKS:
     m = w["meta"] or {}
@@ -203,7 +197,27 @@ HTML = f"""<!DOCTYPE html>
     font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
     border: 1px solid rgba(108,47,206,0.35);
   }}
-  .kpis {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }}
+  .tabs {{
+    display: flex; gap: 4px; margin-bottom: 22px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 6px; width: fit-content;
+  }}
+  .tab-btn {{
+    appearance: none; background: transparent; color: var(--muted);
+    border: 1px solid transparent; padding: 8px 18px; border-radius: 8px;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.15s ease;
+  }}
+  .tab-btn:hover {{ color: var(--text); }}
+  .tab-btn.active {{
+    background: linear-gradient(180deg, rgba(108,47,206,0.20), rgba(108,47,206,0.10));
+    color: var(--lime);
+    border-color: rgba(108,47,206,0.35);
+  }}
+  .tab-panel {{ display: none; }}
+  .tab-panel.active {{ display: block; }}
+  .kpis {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }}
   @media (max-width: 800px) {{ .kpis {{ grid-template-columns: repeat(2, 1fr); }} }}
   .kpi {{
     background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
@@ -253,14 +267,7 @@ HTML = f"""<!DOCTYPE html>
   .pos {{ color: var(--lime); font-weight: 500; }}
   .neg {{ color: var(--bad); font-weight: 500; }}
   .neu {{ color: var(--muted); }}
-  .bar-wrap {{ display: grid; gap: 10px; padding: 18px 20px 22px; }}
-  .bar-row {{ display: grid; grid-template-columns: 140px 1fr 140px; align-items: center; gap: 14px; font-size: 13px; }}
-  .bar-row .name {{ color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }}
-  .bar-row .amount {{ text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }}
-  .bar-track {{ height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; position: relative; border: 1px solid var(--border); }}
-  .bar-fill {{ height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--purple) 0%, var(--purple-2) 100%); }}
   footer {{ color: var(--muted-2); font-size: 11px; margin-top: 24px; text-align: right; letter-spacing: 0.02em; }}
-  .meta-block-title {{ color: var(--lime); font-size: 9px; }}
 </style>
 </head>
 <body>
@@ -275,134 +282,197 @@ HTML = f"""<!DOCTYPE html>
     <div class="sub">Source: GoMarble · KPIs: Purchases &gt; {TH['purchases_min']} · ROAS &gt; {TH['roas_meta_min']:.0f}</div>
   </header>
 
-  <section class="kpis">
-    <div class="kpi">
-      <div class="label">Latest Week Spend</div>
-      <div class="value">{usd(latest_spend)}</div>
-      <div class="meta">Meta {usd(latest_meta.get('spend'))} · Google {usd(latest_google.get('spend'))}</div>
-    </div>
-    <div class="kpi">
-      <div class="label">Latest Week Blended ROAS</div>
-      <div class="value" style="color:{'var(--lime)' if blended_roas >= TH['roas_meta_min'] else 'var(--bad)'}">{num(blended_roas)}</div>
-      <div class="meta">Meta {num(meta_roas)} · Google {num(google_roas)}</div>
-    </div>
-    <div class="kpi accent">
-      <div class="label">Latest Week Purchases</div>
-      <div class="value">{intf(latest_purchases)}</div>
-      <div class="meta">Meta {intf(latest_meta.get('purchases'))} · Google {num(latest_google.get('purchases'), 1)} · Target ≥ {TH['purchases_min']}</div>
-    </div>
-    <div class="kpi">
-      <div class="label">KPI Compliance · Last 4 Weeks</div>
-      <div class="value">{hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
-      <div class="meta">Weeks meeting all 3 thresholds</div>
-    </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="overall" role="tab" aria-selected="true">Overall</button>
+    <button class="tab-btn" data-tab="meta" role="tab" aria-selected="false">Meta Ads</button>
+    <button class="tab-btn" data-tab="google" role="tab" aria-selected="false">Google Ads</button>
+  </nav>
+
+  <!-- ============ OVERALL TAB ============ -->
+  <section class="tab-panel active" id="tab-overall" role="tabpanel">
+    <section class="kpis">
+      <div class="kpi">
+        <div class="label">Latest Week Spend</div>
+        <div class="value">{usd(latest_spend)}</div>
+        <div class="meta">Meta {usd(meta_spend)} · Google {usd(google_spend)}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Latest Week Blended ROAS</div>
+        <div class="value" style="color:{'var(--lime)' if blended_roas >= TH['roas_meta_min'] else 'var(--bad)'}">{num(blended_roas)}</div>
+        <div class="meta">Meta {num(meta_roas)} · Google {num(google_roas)}</div>
+      </div>
+      <div class="kpi accent">
+        <div class="label">Latest Week Purchases</div>
+        <div class="value">{intf(latest_purchases)}</div>
+        <div class="meta">Meta {intf(meta_purchases)} · Google {num(google_purchases, 1)} · Target ≥ {TH['purchases_min']}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">KPI Compliance · Last 4 Weeks</div>
+        <div class="value">{hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+        <div class="meta">Weeks meeting all 3 thresholds</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h">
+        <h2>Weekly KPIs</h2>
+        <span class="sub">Green = threshold met</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Purchases (≥ {TH['purchases_min']})</th>
+              <th>ROAS Meta (≥ {TH['roas_meta_min']:.0f})</th>
+              <th>ROAS Google (≥ {TH['roas_google_min']:.0f})</th>
+            </tr>
+          </thead>
+          <tbody>
+            {''.join(kpi_rows)}
+          </tbody>
+        </table>
+      </div>
+    </section>
   </section>
 
-  <section class="panel">
-    <div class="panel-h">
-      <h2>Weekly Spend Trend — Last 12 Weeks</h2>
-      <span class="sub">Meta + Google combined</span>
-    </div>
-    <div class="bar-wrap">
-"""
+  <!-- ============ META ADS TAB ============ -->
+  <section class="tab-panel" id="tab-meta" role="tabpanel">
+    <section class="kpis">
+      <div class="kpi">
+        <div class="label">Meta · Latest Week Spend</div>
+        <div class="value">{usd(meta_spend)}</div>
+        <div class="meta">{short_date(latest['week_start'])}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Meta · Latest Week ROAS</div>
+        <div class="value" style="color:{'var(--lime)' if meta_roas >= TH['roas_meta_min'] else 'var(--bad)'}">{num(meta_roas)}</div>
+        <div class="meta">Target ≥ {TH['roas_meta_min']:.0f} · Revenue {usd(meta_revenue)}</div>
+      </div>
+      <div class="kpi accent">
+        <div class="label">Meta · Latest Week Purchases</div>
+        <div class="value">{intf(meta_purchases)}</div>
+        <div class="meta">CPA {usd(latest_meta.get('cpa'))}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Meta · ROAS Hits · Last 4 Weeks</div>
+        <div class="value">{meta_hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+        <div class="meta">Weeks with ROAS ≥ {TH['roas_meta_min']:.0f}</div>
+      </div>
+    </section>
 
-# Trend bars
-max_spend = max(((w["meta"] or {}).get("spend") or 0) + ((w["google"] or {}).get("spend") or 0) for w in trend) or 1
-for w in trend:
-    spend_total = ((w["meta"] or {}).get("spend") or 0) + ((w["google"] or {}).get("spend") or 0)
-    HTML += bar_row(short_date(w["week_start"]), spend_total, max_spend) + "\n"
-
-HTML += f"""    </div>
+    <section class="panel">
+      <div class="panel-h">
+        <h2>Meta Ads — Weekly Detail</h2>
+        <span class="sub">{ACCT['meta_account_name']} · {ACCT['meta_account_id']}</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Amount Spent</th>
+              <th>Purchases</th>
+              <th>Revenue</th>
+              <th>CPA</th>
+              <th>ROAS</th>
+              <th>Reach</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>CPM</th>
+              <th>CTR%</th>
+              <th>CPC</th>
+              <th>Frequency</th>
+            </tr>
+          </thead>
+          <tbody>
+            {''.join(meta_rows)}
+          </tbody>
+        </table>
+      </div>
+    </section>
   </section>
 
-  <section class="panel">
-    <div class="panel-h">
-      <h2>Weekly KPIs</h2>
-      <span class="sub">Green = threshold met</span>
-    </div>
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Week</th>
-            <th>Purchases (≥ {TH['purchases_min']})</th>
-            <th>ROAS Meta (≥ {TH['roas_meta_min']:.0f})</th>
-            <th>ROAS Google (≥ {TH['roas_google_min']:.0f})</th>
-          </tr>
-        </thead>
-        <tbody>
-          {''.join(kpi_rows)}
-        </tbody>
-      </table>
-    </div>
-  </section>
+  <!-- ============ GOOGLE ADS TAB ============ -->
+  <section class="tab-panel" id="tab-google" role="tabpanel">
+    <section class="kpis">
+      <div class="kpi">
+        <div class="label">Google · Latest Week Spend</div>
+        <div class="value">{usd(google_spend)}</div>
+        <div class="meta">{short_date(latest['week_start'])}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Google · Latest Week ROAS</div>
+        <div class="value" style="color:{'var(--lime)' if google_roas >= TH['roas_google_min'] else 'var(--bad)'}">{num(google_roas)}</div>
+        <div class="meta">Target ≥ {TH['roas_google_min']:.0f} · Revenue {usd(google_revenue)}</div>
+      </div>
+      <div class="kpi accent">
+        <div class="label">Google · Latest Week Conversions</div>
+        <div class="value">{num(google_purchases, 1)}</div>
+        <div class="meta">CPA {usd(latest_google.get('cpa'))}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Google · ROAS Hits · Last 4 Weeks</div>
+        <div class="value">{google_hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+        <div class="meta">Weeks with ROAS ≥ {TH['roas_google_min']:.0f}</div>
+      </div>
+    </section>
 
-  <section class="panel">
-    <div class="panel-h">
-      <h2>Meta Ads — Weekly Detail</h2>
-      <span class="sub">{ACCT['meta_account_name']} · {ACCT['meta_account_id']}</span>
-    </div>
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Week</th>
-            <th>Amount Spent</th>
-            <th>Purchases</th>
-            <th>Revenue</th>
-            <th>CPA</th>
-            <th>ROAS</th>
-            <th>Reach</th>
-            <th>Impressions</th>
-            <th>Clicks</th>
-            <th>CPM</th>
-            <th>CTR%</th>
-            <th>CPC</th>
-            <th>Frequency</th>
-          </tr>
-        </thead>
-        <tbody>
-          {''.join(meta_rows)}
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-h">
-      <h2>Google Ads — Weekly Detail</h2>
-      <span class="sub">{ACCT['google_account_name']} · {ACCT['google_customer_id']}</span>
-    </div>
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Week</th>
-            <th>Amount Spent</th>
-            <th>Purchase</th>
-            <th>Revenue</th>
-            <th>CPA</th>
-            <th>ROAS</th>
-            <th>Impressions</th>
-            <th>Clicks</th>
-            <th>CPM</th>
-            <th>CTR%</th>
-            <th>CPC</th>
-            <th>Impr. (Abs. top) %</th>
-            <th>Impr. (Top) %</th>
-            <th>Search lost IS (budget)</th>
-            <th>Search lost IS (rank)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {''.join(google_rows)}
-        </tbody>
-      </table>
-    </div>
+    <section class="panel">
+      <div class="panel-h">
+        <h2>Google Ads — Weekly Detail</h2>
+        <span class="sub">{ACCT['google_account_name']} · {ACCT['google_customer_id']}</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Amount Spent</th>
+              <th>Purchase</th>
+              <th>Revenue</th>
+              <th>CPA</th>
+              <th>ROAS</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>CPM</th>
+              <th>CTR%</th>
+              <th>CPC</th>
+              <th>Impr. (Abs. top) %</th>
+              <th>Impr. (Top) %</th>
+              <th>Search lost IS (budget)</th>
+              <th>Search lost IS (rank)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {''.join(google_rows)}
+          </tbody>
+        </table>
+      </div>
+    </section>
   </section>
 
   <footer>Generated {DATA['generated_at']} · Source: GoMarble (Meta Graph API + Google Ads API)</footer>
 </div>
+
+<script>
+  (function () {{
+    const buttons = document.querySelectorAll(".tab-btn");
+    const panels  = document.querySelectorAll(".tab-panel");
+    function show(name) {{
+      buttons.forEach(b => {{
+        const on = b.dataset.tab === name;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      }});
+      panels.forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+      if (history.replaceState) history.replaceState(null, "", "#" + name);
+    }}
+    buttons.forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
+    const initial = (location.hash || "#overall").slice(1);
+    if (["overall", "meta", "google"].includes(initial)) show(initial);
+  }})();
+</script>
 </body>
 </html>
 """

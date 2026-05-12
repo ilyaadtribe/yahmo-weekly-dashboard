@@ -51,7 +51,27 @@
     font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
     border: 1px solid rgba(108,47,206,0.35);
   }
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 22px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 6px; width: fit-content;
+  }
+  .tab-btn {
+    appearance: none; background: transparent; color: var(--muted);
+    border: 1px solid transparent; padding: 8px 18px; border-radius: 8px;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.15s ease;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    background: linear-gradient(180deg, rgba(108,47,206,0.20), rgba(108,47,206,0.10));
+    color: var(--lime);
+    border-color: rgba(108,47,206,0.35);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
   @media (max-width: 800px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
   .kpi {
     background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
@@ -101,14 +121,7 @@
   .pos { color: var(--lime); font-weight: 500; }
   .neg { color: var(--bad); font-weight: 500; }
   .neu { color: var(--muted); }
-  .bar-wrap { display: grid; gap: 10px; padding: 18px 20px 22px; }
-  .bar-row { display: grid; grid-template-columns: 140px 1fr 140px; align-items: center; gap: 14px; font-size: 13px; }
-  .bar-row .name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-  .bar-row .amount { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
-  .bar-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; position: relative; border: 1px solid var(--border); }
-  .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--purple) 0%, var(--purple-2) 100%); }
   footer { color: var(--muted-2); font-size: 11px; margin-top: 24px; text-align: right; letter-spacing: 0.02em; }
-  .meta-block-title { color: var(--lime); font-size: 9px; }
 </style>
 </head>
 <body>
@@ -123,115 +136,54 @@
     <div class="sub">Source: GoMarble · KPIs: Purchases &gt; 40 · ROAS &gt; 3</div>
   </header>
 
-  <section class="kpis">
-    <div class="kpi">
-      <div class="label">Latest Week Spend</div>
-      <div class="value">$1,898.15</div>
-      <div class="meta">Meta $1,145.53 · Google $752.62</div>
-    </div>
-    <div class="kpi">
-      <div class="label">Latest Week Blended ROAS</div>
-      <div class="value" style="color:var(--lime)">3.33</div>
-      <div class="meta">Meta 3.53 · Google 3.03</div>
-    </div>
-    <div class="kpi accent">
-      <div class="label">Latest Week Purchases</div>
-      <div class="value">36</div>
-      <div class="meta">Meta 23 · Google 13.5 · Target ≥ 40</div>
-    </div>
-    <div class="kpi">
-      <div class="label">KPI Compliance · Last 4 Weeks</div>
-      <div class="value">3 <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
-      <div class="meta">Weeks meeting all 3 thresholds</div>
-    </div>
-  </section>
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="overall" role="tab" aria-selected="true">Overall</button>
+    <button class="tab-btn" data-tab="meta" role="tab" aria-selected="false">Meta Ads</button>
+    <button class="tab-btn" data-tab="google" role="tab" aria-selected="false">Google Ads</button>
+  </nav>
 
-  <section class="panel">
-    <div class="panel-h">
-      <h2>Weekly Spend Trend — Last 12 Weeks</h2>
-      <span class="sub">Meta + Google combined</span>
-    </div>
-    <div class="bar-wrap">
-<div class="bar-row">
-        <span class="name">Feb 23, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:39.1%"></div></div>
-        <span class="amount">$5,209.49</span>
+  <!-- ============ OVERALL TAB ============ -->
+  <section class="tab-panel active" id="tab-overall" role="tabpanel">
+    <section class="kpis">
+      <div class="kpi">
+        <div class="label">Latest Week Spend</div>
+        <div class="value">$1,898.15</div>
+        <div class="meta">Meta $1,145.53 · Google $752.62</div>
       </div>
-<div class="bar-row">
-        <span class="name">Mar 02, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:42.7%"></div></div>
-        <span class="amount">$5,694.96</span>
+      <div class="kpi">
+        <div class="label">Latest Week Blended ROAS</div>
+        <div class="value" style="color:var(--lime)">3.33</div>
+        <div class="meta">Meta 3.53 · Google 3.03</div>
       </div>
-<div class="bar-row">
-        <span class="name">Mar 09, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:72.1%"></div></div>
-        <span class="amount">$9,601.34</span>
+      <div class="kpi accent">
+        <div class="label">Latest Week Purchases</div>
+        <div class="value">36</div>
+        <div class="meta">Meta 23 · Google 13.5 · Target ≥ 40</div>
       </div>
-<div class="bar-row">
-        <span class="name">Mar 16, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:76.0%"></div></div>
-        <span class="amount">$10,126.18</span>
+      <div class="kpi">
+        <div class="label">KPI Compliance · Last 4 Weeks</div>
+        <div class="value">3 <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+        <div class="meta">Weeks meeting all 3 thresholds</div>
       </div>
-<div class="bar-row">
-        <span class="name">Mar 23, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:82.6%"></div></div>
-        <span class="amount">$11,002.61</span>
-      </div>
-<div class="bar-row">
-        <span class="name">Mar 30, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:85.2%"></div></div>
-        <span class="amount">$11,356.02</span>
-      </div>
-<div class="bar-row">
-        <span class="name">Apr 06, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:93.3%"></div></div>
-        <span class="amount">$12,433.52</span>
-      </div>
-<div class="bar-row">
-        <span class="name">Apr 13, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:99.5%"></div></div>
-        <span class="amount">$13,261.61</span>
-      </div>
-<div class="bar-row">
-        <span class="name">Apr 20, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:96.5%"></div></div>
-        <span class="amount">$12,857.62</span>
-      </div>
-<div class="bar-row">
-        <span class="name">Apr 27, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div>
-        <span class="amount">$13,322.32</span>
-      </div>
-<div class="bar-row">
-        <span class="name">May 04, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:98.4%"></div></div>
-        <span class="amount">$13,108.51</span>
-      </div>
-<div class="bar-row">
-        <span class="name">May 11, 2026</span>
-        <div class="bar-track"><div class="bar-fill" style="width:14.2%"></div></div>
-        <span class="amount">$1,898.15</span>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="panel">
-    <div class="panel-h">
-      <h2>Weekly KPIs</h2>
-      <span class="sub">Green = threshold met</span>
-    </div>
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Week</th>
-            <th>Purchases (≥ 40)</th>
-            <th>ROAS Meta (≥ 3)</th>
-            <th>ROAS Google (≥ 3)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
+    <section class="panel">
+      <div class="panel-h">
+        <h2>Weekly KPIs</h2>
+        <span class="sub">Green = threshold met</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Purchases (≥ 40)</th>
+              <th>ROAS Meta (≥ 3)</th>
+              <th>ROAS Google (≥ 3)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
       <td class="acct">May 11, 2026</td>
       <td class="neg">36</td>
       <td class="pos">3.53</td>
@@ -497,37 +449,63 @@
       <td class="neg">2.52</td>
       <td class="pos">6.65</td>
     </tr>
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </section>
 
-  <section class="panel">
-    <div class="panel-h">
-      <h2>Meta Ads — Weekly Detail</h2>
-      <span class="sub">YAHMO Ad Acc · act_10207584714042283</span>
-    </div>
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Week</th>
-            <th>Amount Spent</th>
-            <th>Purchases</th>
-            <th>Revenue</th>
-            <th>CPA</th>
-            <th>ROAS</th>
-            <th>Reach</th>
-            <th>Impressions</th>
-            <th>Clicks</th>
-            <th>CPM</th>
-            <th>CTR%</th>
-            <th>CPC</th>
-            <th>Frequency</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
+  <!-- ============ META ADS TAB ============ -->
+  <section class="tab-panel" id="tab-meta" role="tabpanel">
+    <section class="kpis">
+      <div class="kpi">
+        <div class="label">Meta · Latest Week Spend</div>
+        <div class="value">$1,145.53</div>
+        <div class="meta">May 11, 2026</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Meta · Latest Week ROAS</div>
+        <div class="value" style="color:var(--lime)">3.53</div>
+        <div class="meta">Target ≥ 3 · Revenue $4,041.95</div>
+      </div>
+      <div class="kpi accent">
+        <div class="label">Meta · Latest Week Purchases</div>
+        <div class="value">23</div>
+        <div class="meta">CPA $49.81</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Meta · ROAS Hits · Last 4 Weeks</div>
+        <div class="value">4 <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+        <div class="meta">Weeks with ROAS ≥ 3</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h">
+        <h2>Meta Ads — Weekly Detail</h2>
+        <span class="sub">YAHMO Ad Acc · act_10207584714042283</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Amount Spent</th>
+              <th>Purchases</th>
+              <th>Revenue</th>
+              <th>CPA</th>
+              <th>ROAS</th>
+              <th>Reach</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>CPM</th>
+              <th>CTR%</th>
+              <th>CPC</th>
+              <th>Frequency</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
       <td class="acct">May 11, 2026</td>
       <td>$1,145.53</td>
       <td>23</td>
@@ -1270,39 +1248,65 @@
       <td>$0.73</td>
       <td>2.32</td>
     </tr>
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </section>
 
-  <section class="panel">
-    <div class="panel-h">
-      <h2>Google Ads — Weekly Detail</h2>
-      <span class="sub">yahmo.com · 7543821390</span>
-    </div>
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Week</th>
-            <th>Amount Spent</th>
-            <th>Purchase</th>
-            <th>Revenue</th>
-            <th>CPA</th>
-            <th>ROAS</th>
-            <th>Impressions</th>
-            <th>Clicks</th>
-            <th>CPM</th>
-            <th>CTR%</th>
-            <th>CPC</th>
-            <th>Impr. (Abs. top) %</th>
-            <th>Impr. (Top) %</th>
-            <th>Search lost IS (budget)</th>
-            <th>Search lost IS (rank)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
+  <!-- ============ GOOGLE ADS TAB ============ -->
+  <section class="tab-panel" id="tab-google" role="tabpanel">
+    <section class="kpis">
+      <div class="kpi">
+        <div class="label">Google · Latest Week Spend</div>
+        <div class="value">$752.62</div>
+        <div class="meta">May 11, 2026</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Google · Latest Week ROAS</div>
+        <div class="value" style="color:var(--lime)">3.03</div>
+        <div class="meta">Target ≥ 3 · Revenue $2,279.10</div>
+      </div>
+      <div class="kpi accent">
+        <div class="label">Google · Latest Week Conversions</div>
+        <div class="value">13.5</div>
+        <div class="meta">CPA $55.75</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Google · ROAS Hits · Last 4 Weeks</div>
+        <div class="value">4 <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+        <div class="meta">Weeks with ROAS ≥ 3</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h">
+        <h2>Google Ads — Weekly Detail</h2>
+        <span class="sub">yahmo.com · 7543821390</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Amount Spent</th>
+              <th>Purchase</th>
+              <th>Revenue</th>
+              <th>CPA</th>
+              <th>ROAS</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>CPM</th>
+              <th>CTR%</th>
+              <th>CPC</th>
+              <th>Impr. (Abs. top) %</th>
+              <th>Impr. (Top) %</th>
+              <th>Search lost IS (budget)</th>
+              <th>Search lost IS (rank)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
       <td class="acct">May 11, 2026</td>
       <td>$752.62</td>
       <td>13.5</td>
@@ -2151,12 +2155,32 @@
       <td>12.79%</td>
       <td>54.73%</td>
     </tr>
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </section>
 
   <footer>Generated 2026-05-12T07:42:37.900495Z · Source: GoMarble (Meta Graph API + Google Ads API)</footer>
 </div>
+
+<script>
+  (function () {
+    const buttons = document.querySelectorAll(".tab-btn");
+    const panels  = document.querySelectorAll(".tab-panel");
+    function show(name) {
+      buttons.forEach(b => {
+        const on = b.dataset.tab === name;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      panels.forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+      if (history.replaceState) history.replaceState(null, "", "#" + name);
+    }
+    buttons.forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
+    const initial = (location.hash || "#overall").slice(1);
+    if (["overall", "meta", "google"].includes(initial)) show(initial);
+  })();
+</script>
 </body>
 </html>
