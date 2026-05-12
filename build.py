@@ -602,9 +602,9 @@ HTML = f"""<!DOCTYPE html>
         <div class="meta">CPA {usd(latest_google.get('cpa'))}</div>
       </div>
       <div class="kpi">
-        <div class="label">Google · ROAS Hits · Last 4 Weeks</div>
-        <div class="value">{google_hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
-        <div class="meta">Weeks with ROAS ≥ {TH['roas_google_min']:.0f}</div>
+        <div class="label">Google · Latest Week Revenue</div>
+        <div class="value">{usd(google_revenue)}</div>
+        <div class="meta">AOV {usd((google_revenue / google_purchases) if google_purchases else 0)} · ROAS {num(google_roas)}</div>
       </div>
     </section>
 
