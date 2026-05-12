@@ -319,13 +319,13 @@ HTML = f"""<!DOCTYPE html>
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab-btn active" data-tab="overall" role="tab" aria-selected="true">Overall</button>
-    <button class="tab-btn" data-tab="meta" role="tab" aria-selected="false">Meta Ads</button>
+    <button class="tab-btn active" data-tab="meta" role="tab" aria-selected="true">Meta Ads</button>
     <button class="tab-btn" data-tab="google" role="tab" aria-selected="false">Google Ads</button>
+    <button class="tab-btn" data-tab="overall" role="tab" aria-selected="false">Overall</button>
   </nav>
 
   <!-- ============ OVERALL TAB ============ -->
-  <section class="tab-panel active" id="tab-overall" role="tabpanel">
+  <section class="tab-panel" id="tab-overall" role="tabpanel">
     <section class="kpis">
       <div class="kpi">
         <div class="label">Latest Week Spend</div>
@@ -441,7 +441,7 @@ HTML = f"""<!DOCTYPE html>
   </section>
 
   <!-- ============ META ADS TAB ============ -->
-  <section class="tab-panel" id="tab-meta" role="tabpanel">
+  <section class="tab-panel active" id="tab-meta" role="tabpanel">
     <section class="kpis">
       <div class="kpi">
         <div class="label">Meta · Latest Week Spend</div>
@@ -613,8 +613,8 @@ HTML = f"""<!DOCTYPE html>
       if (history.replaceState) history.replaceState(null, "", "#" + name);
     }}
     buttons.forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
-    const initial = (location.hash || "#overall").slice(1);
-    if (["overall", "meta", "google"].includes(initial)) show(initial);
+    const initial = (location.hash || "#meta").slice(1);
+    if (["meta", "google", "overall"].includes(initial)) show(initial);
   }})();
 </script>
 </body>
