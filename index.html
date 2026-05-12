@@ -118,6 +118,14 @@
   tbody tr:hover td { background: rgba(108,47,206,0.06); }
   tbody tr:hover td:first-child { background: rgba(108,47,206,0.06); }
   .acct { font-weight: 500; }
+  .partial-tag {
+    display: inline-block; margin-left: 6px;
+    padding: 1px 6px; border-radius: 999px;
+    background: rgba(255,255,255,0.06); color: var(--muted);
+    font-size: 9px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; border: 1px solid var(--border);
+    vertical-align: middle;
+  }
   .pos { color: var(--lime); font-weight: 500; }
   .neg { color: var(--bad); font-weight: 500; }
   .neu { color: var(--muted); }
@@ -139,6 +147,7 @@
       <div class="badge">YAHMO · Weekly Performance</div>
       <h1 style="margin-top:10px">YAHMO — Meta &amp; Google Ads Weekly</h1>
       <div class="sub">May 12, 2025 – May 11, 2026 · 53 weeks · Meta act_10207584714042283 · Google 7543821390</div>
+      <div class="sub" style="margin-top:4px">Latest complete week: <strong style="color:var(--text)">May 04, 2026</strong> · current week May 11, 2026 is in progress</div>
     </div>
     <div class="sub">Source: GoMarble · KPIs: ROAS Meta ≥ 3.00 · ROAS Google ≥ 5.00</div>
   </header>
@@ -154,22 +163,22 @@
     <section class="kpis">
       <div class="kpi">
         <div class="label">Latest Week Spend</div>
-        <div class="value">$1,898.15</div>
-        <div class="meta">Meta $1,145.53 · Google $752.62</div>
+        <div class="value">$13,108.51</div>
+        <div class="meta">Meta $7,692.28 · Google $5,416.23</div>
       </div>
       <div class="kpi">
         <div class="label">Latest Week Blended ROAS</div>
-        <div class="value" style="color:var(--lime)">3.33</div>
-        <div class="meta">Meta 3.53 · Google 3.03</div>
+        <div class="value" style="color:var(--lime)">4.62</div>
+        <div class="meta">Meta 4.08 · Google 5.39</div>
       </div>
       <div class="kpi accent">
         <div class="label">Latest Week Purchases</div>
-        <div class="value">36</div>
-        <div class="meta">Meta 23 · Google 13.5</div>
+        <div class="value">287</div>
+        <div class="meta">Meta 149 · Google 138.8</div>
       </div>
       <div class="kpi">
         <div class="label">ROAS Compliance · Last 4 Weeks</div>
-        <div class="value">3 <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+        <div class="value">4 <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
         <div class="meta">Weeks meeting Meta & Google ROAS targets</div>
       </div>
     </section>
@@ -259,7 +268,7 @@
           </thead>
           <tbody>
             <tr>
-      <td class="acct">May 11, 2026</td>
+      <td class="acct">May 11, 2026 <span class="partial-tag">partial</span></td>
       <td class="pos">3.53</td>
       <td class="neg">3.03</td>
     </tr><tr>
@@ -482,23 +491,23 @@
     <section class="kpis">
       <div class="kpi">
         <div class="label">Meta · Latest Week Spend</div>
-        <div class="value">$1,145.53</div>
-        <div class="meta">May 11, 2026</div>
+        <div class="value">$7,692.28</div>
+        <div class="meta">May 04, 2026</div>
       </div>
       <div class="kpi">
         <div class="label">Meta · Latest Week ROAS</div>
-        <div class="value" style="color:var(--lime)">3.53</div>
-        <div class="meta">Target ≥ 3 · Revenue $4,041.95</div>
+        <div class="value" style="color:var(--lime)">4.08</div>
+        <div class="meta">Target ≥ 3 · Revenue $31,414.53</div>
       </div>
       <div class="kpi accent">
         <div class="label">Meta · Latest Week Purchases</div>
-        <div class="value">23</div>
-        <div class="meta">CPA $49.81</div>
+        <div class="value">149</div>
+        <div class="meta">CPA $51.63</div>
       </div>
       <div class="kpi">
         <div class="label">Meta · Latest Week Video</div>
-        <div class="value" style="font-size:22px">13.25% <span style="color:var(--muted-2);font-size:14px;font-weight:500">hook</span></div>
-        <div class="meta">26.44% hold · ThruPlays 3,799</div>
+        <div class="value" style="font-size:22px">12.26% <span style="color:var(--muted-2);font-size:14px;font-weight:500">hook</span></div>
+        <div class="meta">24.98% hold · ThruPlays 19,933</div>
       </div>
     </section>
 
@@ -530,7 +539,7 @@
           </thead>
           <tbody>
             <tr>
-      <td class="acct">May 11, 2026</td>
+      <td class="acct">May 11, 2026 <span class="partial-tag">partial</span></td>
       <td>$1,145.53</td>
       <td>23</td>
       <td>$4,041.95</td>
@@ -1408,22 +1417,22 @@
     <section class="kpis">
       <div class="kpi">
         <div class="label">Google · Latest Week Spend</div>
-        <div class="value">$752.62</div>
-        <div class="meta">May 11, 2026</div>
+        <div class="value">$5,416.23</div>
+        <div class="meta">May 04, 2026</div>
       </div>
       <div class="kpi">
         <div class="label">Google · Latest Week ROAS</div>
-        <div class="value" style="color:var(--bad)">3.03</div>
-        <div class="meta">Target ≥ 5 · Revenue $2,279.10</div>
+        <div class="value" style="color:var(--lime)">5.39</div>
+        <div class="meta">Target ≥ 5 · Revenue $29,186.06</div>
       </div>
       <div class="kpi accent">
         <div class="label">Google · Latest Week Conversions</div>
-        <div class="value">13.5</div>
-        <div class="meta">CPA $55.75</div>
+        <div class="value">138.8</div>
+        <div class="meta">CPA $39.02</div>
       </div>
       <div class="kpi">
         <div class="label">Google · ROAS Hits · Last 4 Weeks</div>
-        <div class="value">3 <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
+        <div class="value">4 <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
         <div class="meta">Weeks with ROAS ≥ 5</div>
       </div>
     </section>
@@ -1456,7 +1465,7 @@
           </thead>
           <tbody>
             <tr>
-      <td class="acct">May 11, 2026</td>
+      <td class="acct">May 11, 2026 <span class="partial-tag">partial</span></td>
       <td>$752.62</td>
       <td>13.5</td>
       <td>$2,279.10</td>

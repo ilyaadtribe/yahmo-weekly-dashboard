@@ -47,8 +47,25 @@ def short_date(d):
     return datetime.date.fromisoformat(d).strftime("%b %d, %Y")
 
 
-# --- Header KPIs from the latest week ---
-latest = WEEKS[0]
+def week_label(d, partial_set):
+    base = short_date(d)
+    if d in partial_set:
+        return f'{base} <span class="partial-tag">partial</span>'
+    return base
+
+
+# --- Identify the latest *complete* week (a week is complete if it started ≥ 7 days ago) ---
+TODAY = datetime.date.today()
+def is_complete(w):
+    return (TODAY - datetime.date.fromisoformat(w["week_start"])).days >= 7
+
+# Index of the first complete week (closest to today)
+LATEST_COMPLETE_IDX = next((i for i, w in enumerate(WEEKS) if is_complete(w)), 0)
+HAS_PARTIAL = LATEST_COMPLETE_IDX > 0  # there's a current in-progress week at the top
+PARTIAL_WEEKS = set(w["week_start"] for w in WEEKS[:LATEST_COMPLETE_IDX]) if HAS_PARTIAL else set()
+
+# --- KPI cards reflect the latest *complete* week, not the in-progress one ---
+latest = WEEKS[LATEST_COMPLETE_IDX]
 latest_meta = latest["meta"] or {}
 latest_google = latest["google"] or {}
 
@@ -65,8 +82,8 @@ google_purchases = latest_google.get("purchases") or 0
 meta_revenue = latest_meta.get("revenue") or 0
 google_revenue = latest_google.get("revenue") or 0
 
-# Threshold compliance: last 4 weeks (ROAS only on both platforms)
-compliance_weeks = WEEKS[:4]
+# Threshold compliance: last 4 complete weeks (skip the in-progress week if any)
+compliance_weeks = WEEKS[LATEST_COMPLETE_IDX:LATEST_COMPLETE_IDX + 4]
 def hits_kpi(w):
     m = w["meta"] or {}
     g = w["google"] or {}
@@ -117,7 +134,7 @@ for w in WEEKS:
     m_roas = m.get("roas") or 0
     g_roas = g.get("roas") or 0
     kpi_rows.append(f"""<tr>
-      <td class="acct">{short_date(w['week_start'])}</td>
+      <td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td>
       <td class="{cls_thresh(m_roas, TH['roas_meta_min'])}">{num(m_roas)}</td>
       <td class="{cls_thresh(g_roas, TH['roas_google_min'])}">{num(g_roas)}</td>
     </tr>""")
@@ -127,10 +144,10 @@ meta_rows = []
 for w in WEEKS:
     m = w["meta"] or {}
     if not m:
-        meta_rows.append(f"""<tr><td class="acct">{short_date(w['week_start'])}</td><td colspan="14" class="neu">no data</td></tr>""")
+        meta_rows.append(f"""<tr><td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td><td colspan="14" class="neu">no data</td></tr>""")
         continue
     meta_rows.append(f"""<tr>
-      <td class="acct">{short_date(w['week_start'])}</td>
+      <td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td>
       <td>{usd(m.get('spend'))}</td>
       <td>{intf(m.get('purchases'))}</td>
       <td>{usd(m.get('revenue'))}</td>
@@ -152,10 +169,10 @@ google_rows = []
 for w in WEEKS:
     g = w["google"] or {}
     if not g:
-        google_rows.append(f"""<tr><td class="acct">{short_date(w['week_start'])}</td><td colspan="14" class="neu">no data</td></tr>""")
+        google_rows.append(f"""<tr><td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td><td colspan="14" class="neu">no data</td></tr>""")
         continue
     google_rows.append(f"""<tr>
-      <td class="acct">{short_date(w['week_start'])}</td>
+      <td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td>
       <td>{usd(g.get('spend'))}</td>
       <td>{num(g.get('purchases'), 1)}</td>
       <td>{usd(g.get('revenue'))}</td>
@@ -293,6 +310,14 @@ HTML = f"""<!DOCTYPE html>
   tbody tr:hover td {{ background: rgba(108,47,206,0.06); }}
   tbody tr:hover td:first-child {{ background: rgba(108,47,206,0.06); }}
   .acct {{ font-weight: 500; }}
+  .partial-tag {{
+    display: inline-block; margin-left: 6px;
+    padding: 1px 6px; border-radius: 999px;
+    background: rgba(255,255,255,0.06); color: var(--muted);
+    font-size: 9px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; border: 1px solid var(--border);
+    vertical-align: middle;
+  }}
   .pos {{ color: var(--lime); font-weight: 500; }}
   .neg {{ color: var(--bad); font-weight: 500; }}
   .neu {{ color: var(--muted); }}
@@ -314,6 +339,7 @@ HTML = f"""<!DOCTYPE html>
       <div class="badge">{ACCT['brand']} · Weekly Performance</div>
       <h1 style="margin-top:10px">{ACCT['brand']} — Meta &amp; Google Ads Weekly</h1>
       <div class="sub">{short_date(DATE_RANGE['from'])} – {short_date(DATE_RANGE['to'])} · {DATA['weeks_count']} weeks · Meta {ACCT['meta_account_id']} · Google {ACCT['google_customer_id']}</div>
+      <div class="sub" style="margin-top:4px">Latest complete week: <strong style="color:var(--text)">{short_date(latest['week_start'])}</strong>{(' · current week ' + short_date(WEEKS[0]['week_start']) + ' is in progress') if HAS_PARTIAL else ''}</div>
     </div>
     <div class="sub">Source: GoMarble · KPIs: ROAS Meta ≥ {TH['roas_meta_min']:.2f} · ROAS Google ≥ {TH['roas_google_min']:.2f}</div>
   </header>

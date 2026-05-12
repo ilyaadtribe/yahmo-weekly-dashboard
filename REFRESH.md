@@ -99,6 +99,18 @@ This file is read by the scheduled Claude agent every Monday. The agent has acce
    - No week should have both `meta == null` and `google == null`.
    - If any check fails, do NOT commit. Stop and report.
 
+## Partial-week handling (handled by build.py automatically)
+
+The dashboard distinguishes between *complete* and *partial* weeks:
+- A week is **complete** if it started ≥ 7 days ago (i.e. `week_start <= today − 7 days`).
+- A week is **partial** if `week_start > today − 7 days` (i.e. it's still in progress when the data was pulled).
+
+`build.py` automatically:
+- Picks the first complete week (newest-first) for all "Latest Week" KPI cards and the 4-week compliance check.
+- Renders partial-week rows in tables with a "PARTIAL" tag next to the date.
+
+You do NOT need to filter partial weeks out of `data.json` — include them. The HTML rendering layer flags them.
+
 ## What not to change
 
 - Do not touch the design/style of `index.html` — `build.py` regenerates it from scratch each run.
