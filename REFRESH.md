@@ -66,7 +66,7 @@ This file is read by the scheduled Claude agent every Monday. The agent has acce
      "generated_at": "<ISO8601 UTC>",
      "weeks_count":  53,
      "date_range":   {"from": "<oldest_week>", "to": "<latest_week>"},
-     "thresholds":   {"purchases_min": 40, "roas_meta_min": 3.0, "roas_google_min": 5.0},
+     "thresholds":   {"roas_meta_min": 3.0, "roas_google_min": 5.0},
      "weeks": [
        {
          "week_start": "YYYY-MM-DD",
@@ -99,4 +99,4 @@ This file is read by the scheduled Claude agent every Monday. The agent has acce
 
 - Do not touch the design/style of `index.html` — `build.py` regenerates it from scratch each run.
 - Do not edit `build.py` schema fields unless you are explicitly asked to add a new metric.
-- KPI thresholds are fixed: purchases ≥ 40, ROAS Meta ≥ 3.00, ROAS Google ≥ 5.00 (April 2026 targets).
+- KPI thresholds are fixed: ROAS Meta ≥ 3.00, ROAS Google ≥ 5.00 (April 2026 targets). There is no purchase-count KPI.

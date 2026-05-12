@@ -8,7 +8,7 @@ Weekly performance report for Yahmo combining Meta Ads (`act_10207584714042283`)
 
 - **KPI cards** — latest week spend, blended ROAS, total purchases, KPI compliance over the last 4 weeks.
 - **Weekly spend trend** — 12-week bar chart of combined Meta + Google spend.
-- **Weekly KPI flags** — purchases (≥ 40), ROAS Meta (≥ 3.00), ROAS Google (≥ 5.00). April 2026 targets.
+- **Weekly KPI flags** — ROAS Meta (≥ 3.00), ROAS Google (≥ 5.00). April 2026 targets.
 - **Last 12 Months summary** — aggregate spend / revenue / purchases / ROAS / CPA for the trailing 52 weeks, on every tab.
 - **Meta Ads weekly table** — spend, purchases, revenue, CPA, ROAS, reach, impressions, clicks, CPM, CTR%, CPC, frequency.
 - **Google Ads weekly table** — spend, conversions, revenue, CPA, ROAS, impressions, clicks, CPM, CTR%, CPC, plus impression share (abs top / top / search lost budget / search lost rank).

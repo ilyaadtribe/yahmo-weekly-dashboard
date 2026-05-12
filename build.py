@@ -65,15 +65,13 @@ google_purchases = latest_google.get("purchases") or 0
 meta_revenue = latest_meta.get("revenue") or 0
 google_revenue = latest_google.get("revenue") or 0
 
-# Threshold compliance: last 4 weeks
+# Threshold compliance: last 4 weeks (ROAS only on both platforms)
 compliance_weeks = WEEKS[:4]
 def hits_kpi(w):
     m = w["meta"] or {}
     g = w["google"] or {}
-    total_p = (m.get("purchases") or 0) + (g.get("purchases") or 0)
     return (
-        total_p >= TH["purchases_min"]
-        and (m.get("roas") or 0) >= TH["roas_meta_min"]
+        (m.get("roas") or 0) >= TH["roas_meta_min"]
         and (g.get("roas") or 0) >= TH["roas_google_min"]
     )
 hits = sum(1 for w in compliance_weeks if hits_kpi(w))
@@ -106,17 +104,15 @@ combined_ttm_roas = (combined_ttm_revenue / combined_ttm_spend) if combined_ttm_
 ttm_weeks = len(TTM)
 ttm_label = f"Last {ttm_weeks} weeks · {short_date(TTM[-1]['week_start'])} – {short_date(TTM[0]['week_start'])}"
 
-# --- KPI flag rows (Overall tab) ---
+# --- KPI flag rows (Overall tab) — ROAS only ---
 kpi_rows = []
 for w in WEEKS:
     m = w["meta"] or {}
     g = w["google"] or {}
-    total_p = (m.get("purchases") or 0) + (g.get("purchases") or 0)
     m_roas = m.get("roas") or 0
     g_roas = g.get("roas") or 0
     kpi_rows.append(f"""<tr>
       <td class="acct">{short_date(w['week_start'])}</td>
-      <td class="{cls_thresh(total_p, TH['purchases_min'])}">{intf(total_p)}</td>
       <td class="{cls_thresh(m_roas, TH['roas_meta_min'])}">{num(m_roas)}</td>
       <td class="{cls_thresh(g_roas, TH['roas_google_min'])}">{num(g_roas)}</td>
     </tr>""")
@@ -312,7 +308,7 @@ HTML = f"""<!DOCTYPE html>
       <h1 style="margin-top:10px">{ACCT['brand']} — Meta &amp; Google Ads Weekly</h1>
       <div class="sub">{short_date(DATE_RANGE['from'])} – {short_date(DATE_RANGE['to'])} · {DATA['weeks_count']} weeks · Meta {ACCT['meta_account_id']} · Google {ACCT['google_customer_id']}</div>
     </div>
-    <div class="sub">Source: GoMarble · KPIs: Purchases ≥ {TH['purchases_min']} · ROAS Meta ≥ {TH['roas_meta_min']:.2f} · ROAS Google ≥ {TH['roas_google_min']:.2f}</div>
+    <div class="sub">Source: GoMarble · KPIs: ROAS Meta ≥ {TH['roas_meta_min']:.2f} · ROAS Google ≥ {TH['roas_google_min']:.2f}</div>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -337,12 +333,12 @@ HTML = f"""<!DOCTYPE html>
       <div class="kpi accent">
         <div class="label">Latest Week Purchases</div>
         <div class="value">{intf(latest_purchases)}</div>
-        <div class="meta">Meta {intf(meta_purchases)} · Google {num(google_purchases, 1)} · Target ≥ {TH['purchases_min']}</div>
+        <div class="meta">Meta {intf(meta_purchases)} · Google {num(google_purchases, 1)}</div>
       </div>
       <div class="kpi">
-        <div class="label">KPI Compliance · Last 4 Weeks</div>
+        <div class="label">ROAS Compliance · Last 4 Weeks</div>
         <div class="value">{hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
-        <div class="meta">Weeks meeting all 3 thresholds</div>
+        <div class="meta">Weeks meeting Meta & Google ROAS targets</div>
       </div>
     </section>
 
@@ -425,9 +421,8 @@ HTML = f"""<!DOCTYPE html>
           <thead>
             <tr>
               <th>Week</th>
-              <th>Purchases (≥ {TH['purchases_min']})</th>
-              <th>ROAS Meta (≥ {TH['roas_meta_min']:.0f})</th>
-              <th>ROAS Google (≥ {TH['roas_google_min']:.0f})</th>
+              <th>ROAS Meta (≥ {TH['roas_meta_min']:.2f})</th>
+              <th>ROAS Google (≥ {TH['roas_google_min']:.2f})</th>
             </tr>
           </thead>
           <tbody>
