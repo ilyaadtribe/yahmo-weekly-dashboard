@@ -54,6 +54,32 @@ def week_label(d, partial_set):
     return base
 
 
+def spend_bg(value, vmin, vmax):
+    """Subtle purple heatmap. Darker = higher spend within the visible range."""
+    if value is None or value == 0 or vmax == vmin:
+        return ""
+    norm = max(0.0, min(1.0, (value - vmin) / (vmax - vmin)))
+    alpha = 0.04 + 0.22 * norm  # 0.04 → 0.26
+    return f' style="background:rgba(108,47,206,{alpha:.2f})"'
+
+
+def roas_bg(value, target):
+    """Gradient: red below target, neutral at target, green above. Intensity scales with distance from target."""
+    if value is None or value == 0 or target == 0:
+        return ""
+    ratio = value / target  # 1.0 = exactly on target
+    if ratio < 1.0:
+        # 0 → ratio=0 (full red), 1.0 → no fill
+        intensity = 1.0 - ratio  # 0..1
+        alpha = 0.10 + 0.28 * intensity
+        return f' style="background:rgba(255,91,91,{alpha:.2f})"'
+    else:
+        # 1.0 → no fill, 2.0 → full green; cap at ratio=2 (i.e. 2× target)
+        intensity = min(1.0, (ratio - 1.0))
+        alpha = 0.06 + 0.24 * intensity
+        return f' style="background:rgba(199,243,0,{alpha:.2f})"'
+
+
 # --- Identify the latest *complete* week (a week is complete if it started ≥ 7 days ago) ---
 TODAY = datetime.date.today()
 def is_complete(w):
@@ -139,6 +165,13 @@ for w in WEEKS:
       <td class="{cls_thresh(g_roas, TH['roas_google_min'])}">{num(g_roas)}</td>
     </tr>""")
 
+# --- Heatmap ranges (computed from complete weeks only so partial doesn't distort) ---
+complete_only = [w for w in WEEKS if w["week_start"] not in PARTIAL_WEEKS]
+meta_spend_vals   = [(w["meta"] or {}).get("spend")  or 0 for w in complete_only if w["meta"]]
+google_spend_vals = [(w["google"] or {}).get("spend") or 0 for w in complete_only if w["google"]]
+META_SPEND_MIN, META_SPEND_MAX     = (min(meta_spend_vals), max(meta_spend_vals))     if meta_spend_vals else (0, 0)
+GOOGLE_SPEND_MIN, GOOGLE_SPEND_MAX = (min(google_spend_vals), max(google_spend_vals)) if google_spend_vals else (0, 0)
+
 # --- Meta rows ---
 meta_rows = []
 for w in WEEKS:
@@ -146,13 +179,16 @@ for w in WEEKS:
     if not m:
         meta_rows.append(f"""<tr><td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td><td colspan="14" class="neu">no data</td></tr>""")
         continue
+    is_partial = w["week_start"] in PARTIAL_WEEKS
+    spend_attrs = "" if is_partial else spend_bg(m.get('spend'), META_SPEND_MIN, META_SPEND_MAX)
+    roas_attrs  = "" if is_partial else roas_bg(m.get('roas'), TH['roas_meta_min'])
     meta_rows.append(f"""<tr>
       <td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td>
-      <td>{usd(m.get('spend'))}</td>
+      <td{spend_attrs}>{usd(m.get('spend'))}</td>
       <td>{intf(m.get('purchases'))}</td>
       <td>{usd(m.get('revenue'))}</td>
       <td>{usd(m.get('cpa'))}</td>
-      <td class="{cls_thresh(m.get('roas'), TH['roas_meta_min'])}">{num(m.get('roas'))}</td>
+      <td{roas_attrs}>{num(m.get('roas'))}</td>
       <td>{intf(m.get('reach'))}</td>
       <td>{intf(m.get('impressions'))}</td>
       <td>{intf(m.get('clicks'))}</td>
@@ -171,13 +207,16 @@ for w in WEEKS:
     if not g:
         google_rows.append(f"""<tr><td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td><td colspan="14" class="neu">no data</td></tr>""")
         continue
+    is_partial = w["week_start"] in PARTIAL_WEEKS
+    spend_attrs = "" if is_partial else spend_bg(g.get('spend'), GOOGLE_SPEND_MIN, GOOGLE_SPEND_MAX)
+    roas_attrs  = "" if is_partial else roas_bg(g.get('roas'), TH['roas_google_min'])
     google_rows.append(f"""<tr>
       <td class="acct">{week_label(w['week_start'], PARTIAL_WEEKS)}</td>
-      <td>{usd(g.get('spend'))}</td>
+      <td{spend_attrs}>{usd(g.get('spend'))}</td>
       <td>{num(g.get('purchases'), 1)}</td>
       <td>{usd(g.get('revenue'))}</td>
       <td>{usd(g.get('cpa'))}</td>
-      <td class="{cls_thresh(g.get('roas'), TH['roas_google_min'])}">{num(g.get('roas'))}</td>
+      <td{roas_attrs}>{num(g.get('roas'))}</td>
       <td>{intf(g.get('impressions'))}</td>
       <td>{intf(g.get('clicks'))}</td>
       <td>{num(g.get('cpm'))}</td>
@@ -494,7 +533,7 @@ HTML = f"""<!DOCTYPE html>
     <section class="panel">
       <div class="panel-h">
         <h2>Meta Ads — Weekly Detail</h2>
-        <span class="sub">{ACCT['meta_account_name']} · {ACCT['meta_account_id']}</span>
+        <span class="sub">{ACCT['meta_account_name']} · Spend shaded by volume · ROAS shaded vs target {TH['roas_meta_min']:.2f}</span>
       </div>
       <div class="scroll">
         <table>
@@ -572,7 +611,7 @@ HTML = f"""<!DOCTYPE html>
     <section class="panel">
       <div class="panel-h">
         <h2>Google Ads — Weekly Detail</h2>
-        <span class="sub">{ACCT['google_account_name']} · {ACCT['google_customer_id']}</span>
+        <span class="sub">{ACCT['google_account_name']} · Spend shaded by volume · ROAS shaded vs target {TH['roas_google_min']:.2f}</span>
       </div>
       <div class="scroll">
         <table>
