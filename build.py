@@ -80,6 +80,32 @@ hits = sum(1 for w in compliance_weeks if hits_kpi(w))
 meta_hits   = sum(1 for w in compliance_weeks if ((w["meta"] or {}).get("roas") or 0) >= TH["roas_meta_min"])
 google_hits = sum(1 for w in compliance_weeks if ((w["google"] or {}).get("roas") or 0) >= TH["roas_google_min"])
 
+# --- Last 12 months (52 weeks) aggregate ---
+TTM = WEEKS[:52]
+def agg_platform(weeks, side):
+    spend = sum((w[side] or {}).get("spend") or 0 for w in weeks)
+    rev   = sum((w[side] or {}).get("revenue") or 0 for w in weeks)
+    purch = sum((w[side] or {}).get("purchases") or 0 for w in weeks)
+    imp   = sum((w[side] or {}).get("impressions") or 0 for w in weeks)
+    clk   = sum((w[side] or {}).get("clicks") or 0 for w in weeks)
+    return {
+        "spend": spend, "revenue": rev, "purchases": purch,
+        "impressions": imp, "clicks": clk,
+        "roas": (rev / spend) if spend else 0,
+        "cpa":  (spend / purch) if purch else 0,
+        "cpm":  (spend / imp * 1000) if imp else 0,
+        "ctr":  (clk / imp * 100) if imp else 0,
+        "cpc":  (spend / clk) if clk else 0,
+    }
+meta_ttm = agg_platform(TTM, "meta")
+google_ttm = agg_platform(TTM, "google")
+combined_ttm_spend = meta_ttm["spend"] + google_ttm["spend"]
+combined_ttm_revenue = meta_ttm["revenue"] + google_ttm["revenue"]
+combined_ttm_purchases = meta_ttm["purchases"] + google_ttm["purchases"]
+combined_ttm_roas = (combined_ttm_revenue / combined_ttm_spend) if combined_ttm_spend else 0
+ttm_weeks = len(TTM)
+ttm_label = f"Last {ttm_weeks} weeks · {short_date(TTM[-1]['week_start'])} – {short_date(TTM[0]['week_start'])}"
+
 # --- KPI flag rows (Overall tab) ---
 kpi_rows = []
 for w in WEEKS:
@@ -267,6 +293,13 @@ HTML = f"""<!DOCTYPE html>
   .pos {{ color: var(--lime); font-weight: 500; }}
   .neg {{ color: var(--bad); font-weight: 500; }}
   .neu {{ color: var(--muted); }}
+  tfoot td {{
+    border-top: 1px solid var(--border-2);
+    font-weight: 600;
+    background: var(--panel-2);
+    color: var(--text);
+  }}
+  tfoot td:first-child {{ background: var(--panel-2); }}
   footer {{ color: var(--muted-2); font-size: 11px; margin-top: 24px; text-align: right; letter-spacing: 0.02em; }}
 </style>
 </head>
@@ -279,7 +312,7 @@ HTML = f"""<!DOCTYPE html>
       <h1 style="margin-top:10px">{ACCT['brand']} — Meta &amp; Google Ads Weekly</h1>
       <div class="sub">{short_date(DATE_RANGE['from'])} – {short_date(DATE_RANGE['to'])} · {DATA['weeks_count']} weeks · Meta {ACCT['meta_account_id']} · Google {ACCT['google_customer_id']}</div>
     </div>
-    <div class="sub">Source: GoMarble · KPIs: Purchases &gt; {TH['purchases_min']} · ROAS &gt; {TH['roas_meta_min']:.0f}</div>
+    <div class="sub">Source: GoMarble · KPIs: Purchases ≥ {TH['purchases_min']} · ROAS Meta ≥ {TH['roas_meta_min']:.2f} · ROAS Google ≥ {TH['roas_google_min']:.2f}</div>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -310,6 +343,75 @@ HTML = f"""<!DOCTYPE html>
         <div class="label">KPI Compliance · Last 4 Weeks</div>
         <div class="value">{hits} <span style="color:var(--muted-2);font-size:18px;font-weight:500">/ 4</span></div>
         <div class="meta">Weeks meeting all 3 thresholds</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h">
+        <h2>Last 12 Months · Combined</h2>
+        <span class="sub">{ttm_label}</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Spend</th>
+              <th>Revenue</th>
+              <th>Purchases</th>
+              <th>ROAS</th>
+              <th>CPA</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>CPM</th>
+              <th>CTR%</th>
+              <th>CPC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="acct">Meta Ads</td>
+              <td>{usd(meta_ttm['spend'])}</td>
+              <td>{usd(meta_ttm['revenue'])}</td>
+              <td>{intf(meta_ttm['purchases'])}</td>
+              <td class="{cls_thresh(meta_ttm['roas'], TH['roas_meta_min'])}">{num(meta_ttm['roas'])}</td>
+              <td>{usd(meta_ttm['cpa'])}</td>
+              <td>{intf(meta_ttm['impressions'])}</td>
+              <td>{intf(meta_ttm['clicks'])}</td>
+              <td>{num(meta_ttm['cpm'])}</td>
+              <td>{num(meta_ttm['ctr'])}%</td>
+              <td>{usd(meta_ttm['cpc'])}</td>
+            </tr>
+            <tr>
+              <td class="acct">Google Ads</td>
+              <td>{usd(google_ttm['spend'])}</td>
+              <td>{usd(google_ttm['revenue'])}</td>
+              <td>{num(google_ttm['purchases'], 1)}</td>
+              <td class="{cls_thresh(google_ttm['roas'], TH['roas_google_min'])}">{num(google_ttm['roas'])}</td>
+              <td>{usd(google_ttm['cpa'])}</td>
+              <td>{intf(google_ttm['impressions'])}</td>
+              <td>{intf(google_ttm['clicks'])}</td>
+              <td>{num(google_ttm['cpm'])}</td>
+              <td>{num(google_ttm['ctr'])}%</td>
+              <td>{usd(google_ttm['cpc'])}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Combined</td>
+              <td>{usd(combined_ttm_spend)}</td>
+              <td>{usd(combined_ttm_revenue)}</td>
+              <td>{num(combined_ttm_purchases, 1)}</td>
+              <td>{num(combined_ttm_roas)}</td>
+              <td>{usd((combined_ttm_spend / combined_ttm_purchases) if combined_ttm_purchases else 0)}</td>
+              <td>{intf(meta_ttm['impressions'] + google_ttm['impressions'])}</td>
+              <td>{intf(meta_ttm['clicks'] + google_ttm['clicks'])}</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </section>
 
@@ -388,6 +490,23 @@ HTML = f"""<!DOCTYPE html>
           <tbody>
             {''.join(meta_rows)}
           </tbody>
+          <tfoot>
+            <tr>
+              <td>Last 12 Months</td>
+              <td>{usd(meta_ttm['spend'])}</td>
+              <td>{intf(meta_ttm['purchases'])}</td>
+              <td>{usd(meta_ttm['revenue'])}</td>
+              <td>{usd(meta_ttm['cpa'])}</td>
+              <td class="{cls_thresh(meta_ttm['roas'], TH['roas_meta_min'])}">{num(meta_ttm['roas'])}</td>
+              <td>—</td>
+              <td>{intf(meta_ttm['impressions'])}</td>
+              <td>{intf(meta_ttm['clicks'])}</td>
+              <td>{num(meta_ttm['cpm'])}</td>
+              <td>{num(meta_ttm['ctr'])}%</td>
+              <td>{usd(meta_ttm['cpc'])}</td>
+              <td>—</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </section>
@@ -447,6 +566,25 @@ HTML = f"""<!DOCTYPE html>
           <tbody>
             {''.join(google_rows)}
           </tbody>
+          <tfoot>
+            <tr>
+              <td>Last 12 Months</td>
+              <td>{usd(google_ttm['spend'])}</td>
+              <td>{num(google_ttm['purchases'], 1)}</td>
+              <td>{usd(google_ttm['revenue'])}</td>
+              <td>{usd(google_ttm['cpa'])}</td>
+              <td class="{cls_thresh(google_ttm['roas'], TH['roas_google_min'])}">{num(google_ttm['roas'])}</td>
+              <td>{intf(google_ttm['impressions'])}</td>
+              <td>{intf(google_ttm['clicks'])}</td>
+              <td>{num(google_ttm['cpm'])}</td>
+              <td>{num(google_ttm['ctr'])}%</td>
+              <td>{usd(google_ttm['cpc'])}</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </section>

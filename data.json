@@ -1926,6 +1926,6 @@
   "thresholds": {
     "purchases_min": 40,
     "roas_meta_min": 3.0,
-    "roas_google_min": 3.0
+    "roas_google_min": 5.0
   }
 }
