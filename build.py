@@ -524,9 +524,9 @@ HTML = f"""<!DOCTYPE html>
         <div class="meta">CPA {usd(latest_meta.get('cpa'))}</div>
       </div>
       <div class="kpi">
-        <div class="label">Meta · Latest Week Video</div>
-        <div class="value" style="font-size:22px">{pct(latest_meta.get('hook_rate'))} <span style="color:var(--muted-2);font-size:14px;font-weight:500">hook</span></div>
-        <div class="meta">{pct(latest_meta.get('hold_rate'))} hold · ThruPlays {intf(latest_meta.get('thruplays'))}</div>
+        <div class="label">Meta · Latest Week Revenue</div>
+        <div class="value">{usd(meta_revenue)}</div>
+        <div class="meta">AOV {usd((meta_revenue / meta_purchases) if meta_purchases else 0)} · ROAS {num(meta_roas)}</div>
       </div>
     </section>
 
